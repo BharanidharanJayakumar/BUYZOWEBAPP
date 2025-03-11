@@ -1,0 +1,4 @@
+ADMIN_EMAIL = 'admin@buyzo.com';
+ ADMIN_PASSWORD = 'admin123';
+
+azure link : https://bharanidharanjayakumar@dev.azure.com/bharanidharanjayakumar/bharanidharanjayakumar/_git/bharanidharanjayakumar

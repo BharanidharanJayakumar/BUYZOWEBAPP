@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUYZO - Your Shopping Destination</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+<body>
+  <header>
+    <div class="header-container">
+      <div class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </div>
+      <h1>BUYZO</h1>
+      <nav class="top-nav">
+        <a onclick="showSection('home')"><i class="fas fa-home"></i> Home</a>
+        <div class="search-filter-container">
+          <input type="text" id="searchBar" placeholder="Search for products" oninput="searchProducts()">
+          <button class="filter-btn" onclick="toggleFilterDropdown()"><i class="fas fa-filter"></i></button>
+          <div class="filter-options" id="filterOptions">
+            <select id="filterCategory" onchange="applyFilters()">
+              <option value="all">All Categories</option>
+              <option value="electronics">Electronics</option>
+              <option value="fashion">Fashion</option>
+              <option value="furniture">Furniture</option>
+              <option value="sports">Sports</option>
+              <option value="foodAndHealth">Food & Health</option>
+            </select>
+            <select id="filterPrice" onchange="applyFilters()">
+              <option value="none">Sort by Price</option>
+              <option value="lowToHigh">Low to High</option>
+              <option value="highToLow">High to Low</option>
+            </select>
+            <div class="price-range">
+              <label>Price Range: ₹<span id="priceRangeValue">100 - 10000+</span></label>
+              <input type="range" id="priceRange" min="100" max="11000" step="100" value="100" oninput="updatePriceRange()">
+            </div>
+          </div>
+        </div>
+        <div class="login-dropdown">
+          <a id="loginMenuBtn" class="login-btn" onclick="toggleLoginDropdown()"><i class="fas fa-sign-in-alt"></i> Login</a>
+          <div class="login-options" id="loginOptions">
+            <a onclick="showSection('register')">Sign Up</a>
+            <a onclick="showSection('login')">Login</a>
+            <a id="ordersLink" onclick="handleOrdersClick()">Orders</a>
+            <a id="wishlistLink" onclick="handleWishlistClick()">Wishlist</a>
+            <a id="walletLink" onclick="handleWalletClick()">Wallet</a>
+          </div>
+        </div>
+        <a onclick="handleCartClick()" class="cart-btn"><i class="fas fa-shopping-cart"></i> Cart <span id="cartCount" class="cart-count">0</span></a>
+        <div class="profile-section" id="profileSection">
+          <a onclick="showProfile()" class="profile-btn"><i class="fas fa-user"></i> My Profile</a>
+          <a onclick="logout()" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <div class="page-container">
+    <aside class="sidebar" id="sidebar">
+      <h3><i class="fas fa-list"></i> Categories</h3>
+      <ul>
+        <li><a onclick="filterProducts('all'); toggleSidebar()"><i class="fas fa-globe"></i> All</a></li>
+        <li><a onclick="filterProducts('electronics'); toggleSidebar()"><i class="fas fa-laptop"></i> Electronics</a></li>
+        <li><a onclick="filterProducts('fashion'); toggleSidebar()"><i class="fas fa-tshirt"></i> Fashion</a></li>
+        <li><a onclick="filterProducts('furniture'); toggleSidebar()"><i class="fas fa-couch"></i> Furniture</a></li>
+        <li><a onclick="filterProducts('sports'); toggleSidebar()"><i class="fas fa-futbol"></i> Sports</a></li>
+        <li><a onclick="filterProducts('foodAndHealth'); toggleSidebar()"><i class="fas fa-apple-alt"></i> Food & Health</a></li>
+      </ul>
+    </aside>
+
+    <main>
+      <div id="messageBox" class="message-box"></div>
+      <div id="bonusPopup" class="modal">
+        <div class="modal-content bonus-modal">
+          <h2><i class="fas fa-gift"></i> Welcome to BUYZO!</h2>
+          <p class="bonus-text">Congratulations! You've received <strong>10 Buyzo Coins</strong> as your signup bonus to kickstart your shopping journey!</p>
+          <p class="bonus-value">(1 Buyzo Coin = ₹5 | Total Value: ₹50)</p>
+          <button onclick="closeBonusPopup()" class="btn-primary bonus-btn"><i class="fas fa-check-circle"></i> Start Shopping Now!</button>
+        </div>
+      </div>
+
+      <div id="profileModal" class="modal">
+        <div class="modal-content">
+          <h2>Profile</h2>
+          <p><strong>Name:</strong> <span id="profileName"></span></p>
+          <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+          <p><strong>Phone:</strong> <span id="profilePhone"></span></p>
+          <p><strong>Date of Birth:</strong> <span id="profileDob"></span></p>
+          <p><strong>Buyzo Coins:</strong> <span id="profileCoins"></span></p>
+          <button onclick="closeProfileModal()" class="btn-secondary">Close</button>
+        </div>
+      </div>
+
+      <section id="home" class="section active">
+        <div class="hero">
+          <h2>BUYZO SUPER SALE <br> IS LIVE NOW!!!</h2>
+          <p>"Unleash Your Shopping Spirit - Deals That Thrill!"</p>
+          <div class="wallet-info">
+            <p><i class="fas fa-coins"></i> Your Buyzo Coins: <span id="homeCoins">0</span></p>
+          </div>
+        </div>
+        <div class="best-sellers">
+          <h3><i class="fas fa-star"></i> Best Sellers</h3>
+          <p>Discover BUYZO’s top picks just for you!</p>
+          <div id="bestSellersList" class="product-grid"></div>
+          <div class="pagination">
+            <button id="prevBestSellers" class="pagination-btn" onclick="changePage('bestSellers', -1)"><i class="fas fa-arrow-left"></i></button>
+            <button id="nextBestSellers" class="pagination-btn" onclick="changePage('bestSellers', 1)"><i class="fas fa-arrow-right"></i></button>
+          </div>
+        </div>
+      </section>
+
+      <section id="login" class="section">
+        <h2><i class="fas fa-sign-in-alt"></i> Login</h2>
+        <div class="auth-container">
+          <form id="loginForm">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" placeholder="Email" required>
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" placeholder="Password" required>
+            <button type="submit" class="auth-button">Sign In</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="register" class="section">
+        <h2><i class="fas fa-user-plus"></i> Sign Up</h2>
+        <div class="auth-container">
+          <form id="registerForm">
+            <label for="regName">Name</label>
+            <input type="text" id="regName" placeholder="Name" required>
+            <label for="regAge">Age</label>
+            <input type="number" id="regAge" placeholder="Age" required>
+            <label for="regGender">Gender</label>
+            <select id="regGender">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+              <option value="prefer not to say">Prefer not to say</option>
+            </select>
+            <label for="regPhone">Phone</label>
+            <input type="tel" id="regPhone" placeholder="Phone" required>
+            <label for="regDob">Date of Birth</label>
+            <input type="date" id="regDob" required>
+            <label for="regEmail">Email</label>
+            <input type="email" id="regEmail" placeholder="Email" required>
+            <label for="regPassword">Password</label>
+            <input type="password" id="regPassword" placeholder="Password" required>
+            <button type="submit" class="auth-button">Sign Up</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="products" class="section">
+        <div class="content-with-sidebar">
+          <div class="main-content">
+            <h2><i class="fas fa-store"></i> BUYZO Products</h2>
+            <div id="productsList" class="product-grid"></div>
+            <div class="pagination">
+              <button id="prevProducts" class="pagination-btn" onclick="changePage('products', -1)"><i class="fas fa-arrow-left"></i></button>
+              <button id="nextProducts" class="pagination-btn" onclick="changePage('products', 1)"><i class="fas fa-arrow-right"></i></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="cart" class="section">
+        <h2><i class="fas fa-shopping-cart"></i> Your BUYZO Cart</h2>
+        <div class="cart-container">
+          <div id="cartList" class="cart-table"></div>
+          <div class="cart-summary">
+            <p>Total Amount: ₹<span id="cartTotal">0</span></p>
+            <button onclick="placeOrder()" class="btn-primary"><i class="fas fa-shopping-bag"></i> Buy Now</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="wishlist" class="section">
+        <h2><i class="fas fa-heart"></i> Your BUYZO Wishlist</h2>
+        <div id="wishlistList" class="wishlist-grid"></div>
+        <div class="pagination">
+          <button id="prevWishlist" class="pagination-btn" onclick="changePage('wishlist', -1)"><i class="fas fa-arrow-left"></i></button>
+          <button id="nextWishlist" class="pagination-btn" onclick="changePage('wishlist', 1)"><i class="fas fa-arrow-right"></i></button>
+        </div>
+      </section>
+
+      <section id="history" class="section">
+        <h2><i class="fas fa-history"></i> BUYZO Order History</h2>
+        <div class="history-container">
+          <div id="historyList" class="history-table"></div>
+          <div class="pagination">
+            <button id="prevHistory" class="pagination-btn" onclick="changePage('history', -1)"><i class="fas fa-arrow-left"></i></button>
+            <button id="nextHistory" class="pagination-btn" onclick="changePage('history', 1)"><i class="fas fa-arrow-right"></i></button>
+          </div>
+        </div>
+      </section>
+
+      <section id="wallet" class="section">
+        <h2><i class="fas fa-wallet"></i> Your BUYZO Wallet</h2>
+        <div class="wallet-container">
+          <p><strong>Buyzo Coins:</strong> <span id="walletCoins">0</span> (₹<span id="walletValue">0</span>)</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="paymentModal" class="modal">
+    <div class="modal-content payment-modal">
+      <h2><i class="fas fa-credit-card"></i> Payment</h2>
+      <p class="payment-info">Total Amount: ₹<span id="paymentAmount"></span></p>
+      <p class="payment-info">Buyzo Coins Available: <span id="paymentCoins">0</span> (₹<span id="paymentCoinsValue">0</span>)</p>
+      <label for="coinsToUse">Use Buyzo Coins:</label>
+      <input type="number" id="coinsToUse" min="0" placeholder="Enter coins to use">
+      <label for="paymentMethod">Payment Method:</label>
+      <select id="paymentMethod">
+        <option value="credit_card">Credit Card</option>
+        <option value="debit_card">Debit Card</option>
+        <option value="cash">Cash on Delivery</option>
+      </select>
+      <div class="payment-actions">
+        <button onclick="processPayment()" class="btn-primary"><i class="fas fa-check"></i> Pay Now</button>
+        <button onclick="closePaymentModal()" class="btn-secondary"><i class="fas fa-times"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="invoiceModal" class="modal">
+    <div class="modal-content invoice-modal">
+      <h2><i class="fas fa-file-invoice"></i> Purchase Invoice</h2>
+      <div id="invoiceContent" class="invoice-content"></div>
+      <div class="invoice-actions">
+        <button onclick="downloadInvoice()" class="btn-primary"><i class="fas fa-download"></i> Download PDF</button>
+        <button onclick="closeInvoiceModal()" class="btn-secondary"><i class="fas fa-times"></i> Close</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-container">
+      <div class="footer-column">
+        <h4><i class="fas fa-store"></i> Shop</h4>
+        <p><a href="#" onclick="showSection('products')"><i class="fas fa-box"></i> Products</a></p>
+        <p><a href="#"><i class="fas fa-question-circle"></i> FAQ</a></p>
+        <p><a href="#"><i class="fas fa-truck"></i> Shipping / Pick Up</a></p>
+        <p><a href="#"><i class="fas fa-file-alt"></i> Store Policy</a></p>
+        <p><a href="#"><i class="fas fa-envelope"></i> Contact Us</a></p>
+      </div>
+      <div class="footer-column">
+        <h4><i class="fas fa-map-marker-alt"></i> Address</h4>
+        <p>123, Anna Salai</p>
+        <p>Chennai, Tamil Nadu 600002</p>
+        <p><i class="fas fa-phone"></i> Tel: 044-1234-5678</p>
+      </div>
+      <div class="footer-column">
+        <h4><i class="fas fa-envelope"></i> Stay Updated</h4>
+        <form id="newsletterForm">
+          <input type="email" placeholder="Enter your email here *" required>
+          <label><input type="checkbox"> Subscribe to BUYZO newsletter</label>
+          <button type="submit" class="subscribe-btn"><i class="fas fa-check"></i> Subscribe Now</button>
+        </form>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2025 BUYZO. Powered by Firebase.</p>
+      <div class="social-icons">
+        <a href="#"><i class="fab fa-facebook-f"></i></a>
+        <a href="#"><i class="fab fa-twitter"></i></a>
+        <a href="#"><i class="fab fa-youtube"></i></a>
+        <a href="#"><i class="fab fa-instagram"></i></a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

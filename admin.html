@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BUYZO - Admin Panel</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <h1>BUYZO - Admin</h1>
+      <nav>
+        <div class="dropdown">
+          <a id="generateReportBtn" class="report-btn"><i class="fas fa-chart-bar"></i> Generate Report</a>
+          <div class="report-options" id="reportDropdown">
+            <a id="salesReportOpt"><i class="fas fa-dollar-sign"></i> Sales Report</a>
+            <a id="customerReportOpt"><i class="fas fa-users"></i> Customer Report</a>
+            <a id="inventoryReportOpt"><i class="fas fa-warehouse"></i> Inventory Report</a>
+          </div>
+        </div>
+        <a id="logoutBtn" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+      </nav>
+      <div class="profile-section" id="profileSection">
+        <i class="fas fa-user-shield"></i> <span id="userName"></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-container">
+    <aside class="sidebar admin-sidebar">
+      <h3><i class="fas fa-list"></i> Categories</h3>
+      <ul>
+        <li><a href="#" onclick="filterAdminProducts('all')"><i class="fas fa-globe"></i> All</a></li>
+        <li><a href="#" onclick="filterAdminProducts('electronics')"><i class="fas fa-laptop"></i> Electronics</a></li>
+        <li><a href="#" onclick="filterAdminProducts('fashion')"><i class="fas fa-tshirt"></i> Fashion</a></li>
+        <li><a href="#" onclick="filterAdminProducts('furniture')"><i class="fas fa-couch"></i> Furniture</a></li>
+        <li><a href="#" onclick="filterAdminProducts('sports')"><i class="fas fa-futbol"></i> Sports</a></li>
+        <li><a href="#" onclick="filterAdminProducts('foodAndHealth')"><i class="fas fa-apple-alt"></i> Food & Health</a></li>
+      </ul>
+    </aside>
+
+    <main>
+      <div id="messageBox" class="message-box"></div>
+      <div id="reportModal" class="modal">
+        <div class="modal-content report-modal">
+          <span class="close">×</span>
+          <h2 id="reportTitle"><i class="fas fa-chart-line"></i> Report</h2>
+          <div class="report-section">
+            <canvas id="reportChart" width="300" height="300"></canvas>
+          </div>
+          <div id="reportTableContainer" class="report-tables"></div>
+          <button id="downloadPdfBtn" class="btn-primary"><i class="fas fa-download"></i> Download PDF</button>
+        </div>
+      </div>
+      <div class="admin-panel">
+        <div class="crud-form">
+          <h3><i class="fas fa-box"></i> Manage BUYZO Products</h3>
+          <form id="crudForm">
+            <div class="form-group">
+              <label for="productName"><i class="fas fa-tag"></i> Product Name</label>
+              <input type="text" id="productName" required>
+            </div>
+            <div class="form-group">
+              <label for="productCategory"><i class="fas fa-list"></i> Category</label>
+              <select id="productCategory" required onchange="updateSpecsFields()">
+                <option value="electronics">Electronics</option>
+                <option value="fashion">Fashion</option>
+                <option value="furniture">Furniture</option>
+                <option value="sports">Sports</option>
+                <option value="foodAndHealth">Food & Health</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="productPrice"><i class="fas fa-rupee-sign"></i> Price (₹)</label>
+              <input type="number" id="productPrice" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label for="productBuyzoCoins"><i class="fas fa-coins"></i> Buyzo Coins Earned</label>
+              <input type="number" id="productBuyzoCoins" min="0" step="1" required>
+            </div>
+            <div class="form-group">
+              <label for="productImage"><i class="fas fa-image"></i> Image URL</label>
+              <input type="url" id="productImage">
+            </div>
+            <div class="form-group">
+              <label for="productStock"><i class="fas fa-warehouse"></i> Stock Quantity</label>
+              <input type="number" id="productStock" min="0" step="1" required>
+            </div>
+            <div id="specFields" class="form-group"></div>
+            <div class="form-group">
+              <label><i class="fas fa-toggle-on"></i> Active <input type="checkbox" id="productActive"></label>
+            </div>
+            <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Product</button>
+            <button type="button" onclick="clearForm()" class="btn-secondary"><i class="fas fa-times"></i> Clear</button>
+          </form>
+        </div>
+        <div class="admin-content">
+          <div class="recent-products">
+            <h2><i class="fas fa-clock"></i> Recently Added Products</h2>
+            <div id="recentProductList" class="product-grid"></div>
+          </div>
+          <div class="main-content">
+            <h2><i class="fas fa-boxes"></i> All Products</h2>
+            <div id="adminProductList" class="product-grid"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <footer>
+    <div class="footer-container">
+      <div class="footer-column">
+        <h4><i class="fas fa-store"></i> Admin Tools</h4>
+        <p><a href="#"><i class="fas fa-box"></i> Manage Products</a></p>
+        <p><a href="#"><i class="fas fa-envelope"></i> Contact Support</a></p>
+      </div>
+      <div class="footer-column">
+        <h4><i class="fas fa-map-marker-alt"></i> Address</h4>
+        <p>123, Anna Salai</p>
+        <p>Chennai, Tamil Nadu 600002</p>
+        <p><i class="fas fa-phone"></i> Tel: 044-1234-5678</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2025 BUYZO Admin. Powered by Firebase.</p>
+    </div>
+  </footer>
+  <script src="js/admin.js"></script>
+</body>
+</html>
